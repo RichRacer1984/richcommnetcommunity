@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RichComm NetCommunity Chat</title>
+    <script>
+        // Pass backend URL to JavaScript
+        window.REACT_APP_BACKEND_URL = window.location.origin;
+    </script>
+    <style>
+        /* Cassiopeia NetCommunity Style */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #001122 0%, #003366 50%, #001122 100%);
+            color: #00ff00;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            display: flex;
+            height: 100vh;
+            border: 2px solid #00ff00;
+        }
+
+        /* Header */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #000033, #000066, #000033);
+            border-bottom: 2px solid #00ff00;
+            padding: 10px;
+            text-align: center;
+            z-index: 100;
+            height: 50px;
+        }
+
+        .header h1 {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        /* Left Panel - Rooms & Users */
+        .left-panel {
+            width: 200px;
+            background: #000033;
+            border-right: 2px solid #00ff00;
+            margin-top: 50px;
+            overflow-y: auto;
+        }
+
+        .room-list, .user-list {
+            padding: 10px;
+            border-bottom: 1px solid #00ff00;
+        }
+
+        .room-list h3, .user-list h3 {
+            color: #ffff00;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-decoration: underline;
+        }
+
+        .room-item, .user-item {
+            padding: 5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            margin-bottom: 2px;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .room-item:hover, .user-item:hover {
+            background: #003366;
+            border: 1px solid #00ff00;
+        }
+
+        .room-item.active {
+            background: #006600;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .user-vip { color: #ff00ff; }
+        .user-admin { color: #ff0000; }
+        .user-mod { color: #ffaa00; }
+        .user-normal { color: #00ff00; }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-top: 50px;
+        }
+
+        .room-info {
+            background: #000066;
+            padding: 5px 10px;
+            border-bottom: 1px solid #00ff00;
+            font-size: 11px;
+            color: #ffff00;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #000011;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .message {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .message-time {
+            color: #666699;
+            font-size: 10px;
+        }
+
+        .message-user {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .message-text {
+            color: #ffffff;
+        }
+
+        .system-message {
+            color: #ffff00;
+            font-style: italic;
+        }
+
+        .private-message {
+            color: #ff9999;
+            background: #330000;
+            padding: 2px 5px;
+            border-left: 3px solid #ff0000;
+        }
+
+        .command-response {
+            color: #00ffff;
+            background: #002233;
+            padding: 2px 5px;
+            border-left: 3px solid #00ffff;
+        }
+
+        /* Input Area */
+        .input-area {
+            background: #000033;
+            border-top: 2px solid #00ff00;
+            padding: 10px;
+            display: flex;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #000066;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            box-shadow: 0 0 5px #00ff00;
+        }
+
+        .send-button {
+            background: #006600;
+            border: 1px solid #00ff00;
+            color: #ffffff;
+            padding: 8px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: background 0.3s;
+        }
+
+        .send-button:hover {
+            background: #009900;
+        }
+
+        /* Right Panel - Commands & Status */
+        .right-panel {
+            width: 250px;
+            background: #000033;
+            border-left: 2px solid #00ff00;
+            margin-top: 50px;
+            overflow-y: auto;
+        }
+
+        .commands-help, .user-status {
+            padding: 10px;
+            border-bottom: 1px solid #00ff00;
+        }
+
+        .commands-help h3, .user-status h3 {
+            color: #ffff00;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-decoration: underline;
+        }
+
+        .command-item {
+            font-size: 10px;
+            margin-bottom: 3px;
+            color: #00cccc;
+        }
+
+        .command-item .cmd {
+            color: #ff00ff;
+            font-weight: bold;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-online { background: #00ff00; }
+        .status-busy { background: #ffff00; }
+        .status-away { background: #ff9900; }
+        .status-offline { background: #666666; }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000033;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00cccc;
+        }
+
+        /* Blink animation for notifications */
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .blink {
+            animation: blink 1s linear infinite;
+        }
+
+        /* Matrix-style text effect */
+        .matrix-text {
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        /* Login Modal */
+        .login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-form {
+            background: linear-gradient(135deg, #000033, #000066);
+            border: 2px solid #00ff00;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 20px #00ff00;
+        }
+
+        .login-form h2 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .login-form input {
+            background: #000066;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px;
+            margin: 10px;
+            width: 200px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .login-form button {
+            background: #006600;
+            border: 1px solid #00ff00;
+            color: #ffffff;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .login-form button:hover {
+            background: #009900;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-form">
+            <h2 class="matrix-text">RichComm NetCommunity</h2>
+            <div style="color: #00ff00; margin-bottom: 15px;">
+                Lade Benutzer-Daten...
+            </div>
+            <div>
+                <input type="text" id="loginUsername" placeholder="Benutzername" maxlength="20">
+            </div>
+            <div>
+                <select id="userRole" style="background: #000066; border: 1px solid #00ff00; color: #00ff00; padding: 10px; margin: 10px; font-family: 'Courier New', monospace;">
+                    <option value="user">User</option>
+                    <option value="vip">VIP</option>
+                    <option value="moderator">Moderator</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div>
+                <button onclick="login()">Manual Login</button>
+            </div>
+            <div style="color: #666; font-size: 10px; margin-top: 15px;">
+                RichComm NetCommunity Chat v2.0<br>
+                <span id="loginStatus">Prüfe Login-Status...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div class="chat-container" id="chatContainer" style="display: none;">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="matrix-text">RichComm NetCommunity - <span id="currentUser"></span> @ <span id="currentRoom"></span></h1>
+            <button 
+                onclick="leaveChatToDashboard()" 
+                style="position: absolute; right: 10px; top: 10px; background: #660000; border: 1px solid #ff0000; color: #ffffff; padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 10px; cursor: pointer;"
+                onmouseover="this.style.background='#990000'"
+                onmouseout="this.style.background='#660000'"
+            >
+                ← Dashboard
+            </button>
+        </div>
+
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="room-list">
+                <h3>RÄUME</h3>
+                <div class="room-item active" data-room="hauptraum">Hauptraum</div>
+                <div class="room-item" data-room="lounge">Lounge</div>
+                <div class="room-item" data-room="gaming">Gaming</div>
+                <div class="room-item" data-room="musik">Musik</div>
+                <div class="room-item" data-room="exil">Exil</div>
+                <div class="room-item" data-room="vip" style="color: #ff00ff;">VIP-Lounge</div>
+                <div class="room-item" data-room="admin" style="color: #ff0000;">Admin</div>
+            </div>
+            <div class="user-list">
+                <h3>USER ONLINE</h3>
+                <div id="userList">
+                    <!-- Users will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="room-info">
+                <span id="roomInfo">Hauptraum - Willkommen im RichComm Chat!</span>
+                <span style="float: right;" id="userCount">Benutzer: 0</span>
+            </div>
+            <div class="messages-container" id="messagesContainer">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Nachricht eingeben... (Tipp: /help für Befehle)" maxlength="300">
+                <button class="send-button" onclick="sendMessage()">SEND</button>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="user-status">
+                <h3>STATUS</h3>
+                <div style="color: #00ff00; font-size: 11px;">
+                    <div>User: <span id="statusUsername"></span></div>
+                    <div>Rolle: <span id="statusRole"></span></div>
+                    <div>Status: <span class="status-indicator status-online"></span>Online</div>
+                    <div>Raum: <span id="statusRoom"></span></div>
+                    <div>Zeit: <span id="statusTime"></span></div>
+                </div>
+            </div>
+            <div class="commands-help">
+                <h3>BEFEHLE</h3>
+                <div id="commandsList">
+                    <div class="command-item"><span class="cmd">/help</span> - Hilfe anzeigen</div>
+                    <div class="command-item"><span class="cmd">/w user</span> - User-Info</div>
+                    <div class="command-item"><span class="cmd">/wc user</span> - User-Info detail</div>
+                    <div class="command-item"><span class="cmd">/who</span> - User im Raum</div>
+                    <div class="command-item"><span class="cmd">/whisper</span> - Flüstern</div>
+                    <div class="command-item"><span class="cmd">/f+ user</span> - Freund anfragen</div>
+                    <div class="command-item"><span class="cmd">/a</span> - Freund annehmen</div>
+                    <div class="command-item"><span class="cmd">/k user</span> - Ins Exil</div>
+                    <div class="command-item"><span class="cmd">/gag user</span> - Gaggen</div>
+                    <div class="command-item"><span class="cmd">/t thema</span> - Raumthema</div>
+                </div>
+                <div id="adminCommands" style="display: none;">
+                    <div style="color: #ff0000; margin: 10px 0; font-size: 11px;">ADMIN BEFEHLE:</div>
+                    <div class="command-item"><span class="cmd">/ban user</span> - Bannen</div>
+                    <div class="command-item"><span class="cmd">/gag user [min]</span> - Gaggen</div>
+                    <div class="command-item"><span class="cmd">/mute user</span> - Muten</div>
+                    <div class="command-item"><span class="cmd">/l [raum]</span> - Raum sperren</div>
+                    <div class="command-item"><span class="cmd">/mod</span> - Moderieren</div>
+                </div>
+                <div id="vipCommands" style="display: none;">
+                    <div style="color: #ff00ff; margin: 10px 0; font-size: 11px;">VIP/SUPERUSER BEFEHLE:</div>
+                    <div class="command-item"><span class="cmd">/col #hex</span> - Textfarbe</div>
+                    <div class="command-item"><span class="cmd">/nick name</span> - Nick ändern</div>
+                    <div class="command-item"><span class="cmd">/i user</span> - Einladen</div>
+                    <div class="command-item"><span class="cmd">/su user</span> - SUPERUSER geben</div>
+                    <div class="command-item"><span class="cmd">/rsu user</span> - SUPERUSER entziehen</div>
+                    <div class="command-item"><span class="cmd">/kh user min</span> - Temp. Bann</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div id="userProfileModal" class="login-modal" style="display: none;">
+        <div class="login-form" style="width: 500px; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="matrix-text" id="profileUsername">User Profil</h2>
+                <button 
+                    onclick="closeUserProfile()" 
+                    style="background: #660000; border: 1px solid #ff0000; color: #ffffff; padding: 5px 10px; font-family: 'Courier New', monospace; cursor: pointer;"
+                >
+                    ✕ Schließen
+                </button>
+            </div>
+            
+            <!-- User Info Section -->
+            <div style="background: #000033; border: 1px solid #00ff00; padding: 15px; margin-bottom: 15px;">
+                <h3 style="color: #00ffff; margin-bottom: 10px;">👤 USER INFO</h3>
+                <div id="userProfileInfo" style="color: #00ff00; font-size: 12px; line-height: 1.4;">
+                    <!-- Profile info will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Guestbook Section -->
+            <div style="background: #000033; border: 1px solid #00ff00; padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="color: #00ffff; margin: 0;">📝 GÄSTEBUCH</h3>
+                    <button 
+                        id="addGuestbookEntryBtn"
+                        onclick="showAddGuestbookEntry()" 
+                        style="background: #006600; border: 1px solid #00ff00; color: #ffffff; padding: 3px 8px; font-family: 'Courier New', monospace; font-size: 10px; cursor: pointer;"
+                    >
+                        + Eintrag
+                    </button>
+                </div>
+                
+                <!-- Add Guestbook Entry Form -->
+                <div id="addGuestbookForm" style="display: none; background: #000066; border: 1px solid #0000ff; padding: 10px; margin-bottom: 10px;">
+                    <textarea 
+                        id="guestbookMessage" 
+                        placeholder="Gästebuch-Eintrag schreiben..."
+                        style="width: 100%; height: 60px; background: #000033; border: 1px solid #00ff00; color: #00ff00; padding: 5px; font-family: 'Courier New', monospace; font-size: 11px; resize: vertical;"
+                        maxlength="500"
+                    ></textarea>
+                    <div style="margin-top: 5px; display: flex; justify-content: space-between;">
+                        <button 
+                            onclick="submitGuestbookEntry()" 
+                            style="background: #006600; border: 1px solid #00ff00; color: #ffffff; padding: 3px 8px; font-family: 'Courier New', monospace; font-size: 10px; cursor: pointer;"
+                        >
+                            Senden
+                        </button>
+                        <button 
+                            onclick="cancelGuestbookEntry()" 
+                            style="background: #660000; border: 1px solid #ff0000; color: #ffffff; padding: 3px 8px; font-family: 'Courier New', monospace; font-size: 10px; cursor: pointer;"
+                        >
+                            Abbrechen
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Guestbook Entries -->
+                <div id="guestbookEntries" style="max-height: 300px; overflow-y: auto; color: #00ff00; font-size: 11px;">
+                    <!-- Guestbook entries will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help System Modal -->
+    <div id="helpModal" class="login-modal" style="display: none;">
+        <div class="login-form" style="width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="matrix-text">📚 RichComm NetCommunity - Hilfe & Informationen</h2>
+                <button 
+                    onclick="closeHelpModal()" 
+                    style="background: #660000; border: 1px solid #ff0000; color: #ffffff; padding: 5px 10px; font-family: 'Courier New', monospace; cursor: pointer;"
+                >
+                    ✕ Schließen
+                </button>
+            </div>
+            
+            <div id="helpContent" style="color: #00ff00; font-size: 12px; line-height: 1.6;">
+                <!-- Help content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="rich-chat.js"></script>
+</body>
+</html>
